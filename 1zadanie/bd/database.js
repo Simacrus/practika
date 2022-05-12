@@ -1,10 +1,10 @@
-const mysql = require("mysql2");
+const mysql = require("mysql");
 
 const connection = mysql.createConnection({
     host: "localhost",
     user: "root",
     database: "simaca",
-    password: ""
+    password: "root"
 });
 // тестирование подключения
 connection.connect(function (err) {
