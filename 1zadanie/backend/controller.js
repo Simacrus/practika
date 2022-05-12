@@ -1,4 +1,5 @@
-const data = require("./data");
+const data = require("./data.json");
+const { writeDataToFile } = require("./utils.js");
 
 class Controller {
     async getDrugs() {
@@ -19,10 +20,11 @@ class Controller {
     async createDrug(drug) {
         return new Promise((resolve, _) => {
             let newDrug = {
-                id: Math.floor(4 + Math.random() * 10),
+                id: dataId,
                 ...drug,
             };
-
+            data.push(newDrug);
+            writeDataToFile("./data.json", data);
             resolve(newDrug);
         });
     }

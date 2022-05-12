@@ -1,3 +1,6 @@
+const { error } = require("console");
+
+const fs = reqire('fs');
 function getReqData(req) {
     return new Promise((resolve, reject) => {
         try {
@@ -13,4 +16,12 @@ function getReqData(req) {
         }
     });
 }
-module.exports = { getReqData };
+
+function writeDataToFile(filename, content) {
+    fs.writeFileSync(filename, JSON.stringify(content), "utf-8", (error) => {
+        if (error) {
+            console.log(error);
+        }
+    })
+}
+module.exports = { getReqData, writeDataToFile };
