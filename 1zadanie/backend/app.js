@@ -5,6 +5,7 @@ const { getReqData } = require("./utils");
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(async (req, res) => {
+    console.log(req.url);
     if (req.url === "/api/drugs" && req.method === "GET") {
         const drugs = await new Drug().getDrugs();
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -49,6 +50,7 @@ const server = http.createServer(async (req, res) => {
 
     else if (req.url === "/api/drugs" && req.method === "POST") {
         let drug_data = await getReqData(req);
+
         let drug = await new Drug().createDrug(JSON.parse(drug_data));
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(drug));
