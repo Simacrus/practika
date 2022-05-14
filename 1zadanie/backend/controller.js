@@ -1,4 +1,4 @@
-const data = require("./database.js");
+const data = require("./data.js");
 
 class Controller {
     async getDrugs() {
@@ -18,11 +18,12 @@ class Controller {
 
     async createDrug(drug) {
         return new Promise((resolve, _) => {
+            const drug_id = data.length + 1
             let newDrug = {
-                id: Math.floor(4 + Math.random() * 10),
+                id: drug_id,
                 ...drug,
             };
-
+            data.push(newDrug)
             resolve(newDrug);
         });
     }
