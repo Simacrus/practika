@@ -1,10 +1,11 @@
-const data = require("./data");
 const mysql = require("mysql");
 const { hashPassword } = require("./utils");
 
 class Controller {
     //вывод списка лекарств
-    async getDrugs() {
+    async getDrugs(token_user) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
         return new Promise((resolve, reject) => {
             const connection = mysql.createConnection({
                 host: "127.0.0.1",
@@ -21,7 +22,7 @@ class Controller {
                 } else {
                     console.log('Database connected');
                     //тута я пишу запрос в бд
-                    connection.query('Select * FROM prescriptions', (err, results, fields) => {
+                    connection.query('Select * FROM prescriptions WHERE id_user = ?', [id_user], (err, results, fields) => {
 
                         connection.end((err) => {
                             if (err) {
@@ -40,7 +41,9 @@ class Controller {
     }
 
     //добавление лекарств
-    async createDrug(id_prescription, id_user, drug_name, days, start_date, how_much_in_day) {
+    async createDrug(token_user, drug_name, days, start_date, how_much_in_day) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
         return new Promise((resolve, reject) => {
             const connection = mysql.createConnection({
                 host: "127.0.0.1",
@@ -54,10 +57,9 @@ class Controller {
                 } else {
                     console.log('Database connected');
                     connection.query(
-                        'INSERT INTO prescriptions SET ?',
+                        'INSERT INTO prescriptions SET ?', 
                         //тута я указываюзначкения которые будут вводиться
                         {
-                            id_prescription: id_prescription,
                             id_user: id_user,
                             drug_name: drug_name,
                             days: days,
@@ -85,9 +87,10 @@ class Controller {
 
     }
 
-
-    //удаление
-    async deleteDrug(id_prescription) {
+    //прием лекарств
+    async createTaking(token_user, id_prescription, date) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
         return new Promise((resolve, reject) => {
             const connection = mysql.createConnection({
                 host: "127.0.0.1",
@@ -101,8 +104,139 @@ class Controller {
                 } else {
                     console.log('Database connected');
                     connection.query(
-                        'DELETE FROM prescriptions WHERE id_prescription=?',
+                        'SELECT COUNT (*) AS massive FROM prescriptions WHERE id_user = ? AND id_prescription = ?',
                         [
+                            id_user,
+                            id_prescription
+                        ],
+                        (err, results) => {
+                            console.log(err);
+                            if (results.length == 0) {
+                                reject("acces denied");
+                            } else {
+
+
+
+                                connection.query(
+                                    'INSERT INTO taking SET ?',
+                                    //тута я указываюзначкения которые будут вводиться
+                                    {
+                                        id_prescription: id_prescription,
+                                        date: date,
+                                    },
+                                    (err, results, fields) => {
+                                        if (err) {
+                                            reject(err);
+                                        } else {
+                                            resolve(results.insertId);
+                                        }
+                                        connection.end((err) => {
+                                            if (err) {
+                                                console.log(err);
+                                            } else {
+                                                console.log('Database closed');
+                                            }
+                                        });
+
+                                    });
+                            }
+                            });
+                }
+            })
+        });
+
+
+    }
+
+    //не принял лекарства
+    async deleteTaking(token_user, id_taking) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
+        return new Promise((resolve, reject) => {
+            const connection = mysql.createConnection({
+                host: "127.0.0.1",
+                user: "root",
+                database: "simaca",
+                password: "root"
+            });
+            connection.connect((err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log('Database connected');
+                    connection.query(
+                        'SELECT id_prescription FROM taking WHERE id_taking = ?',
+                        [
+                        id_taking
+                        ],
+                        (err, results, fields) => {
+                            console.log(results);
+                            if (err) {
+                                reject(err);
+                            } else {
+                                connection.query(
+                                    'SELECT COUNT (*) AS massivi FROM taking WHERE id_taking = ? AND id_prescription = ?',
+                                    [
+                                        id_taking,
+                                        results
+                                    ],
+                                    (err, results) => {
+                                        if (results.length == 0) {
+                                            reject("acces denied");
+                                        } else {
+                                            connection.query(
+                                                'DELETE FROM taking WHERE id_taking = ?',
+                                                //тута я указываюзначкения которые будут вводиться
+                                                [
+                                                    id_taking,
+                                                ],
+                                                (err, results, fields) => {
+                                                    if (err) {
+                                                        reject(err);
+                                                    } else {
+                                                        resolve(results.insertId);
+                                                    }
+                                                    connection.end((err) => {
+                                                        if (err) {
+                                                            console.log(err);
+                                                        } else {
+                                                            console.log('Database closed');
+                                                        }
+                                                    });
+
+                                                });
+                                        }
+                                    });
+                            }
+                        });
+                }
+            })
+        });
+
+
+    }
+
+
+    //удаление
+    async deleteDrug(token_user, id_prescription) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
+        return new Promise((resolve, reject) => {
+            const connection = mysql.createConnection({
+                host: "127.0.0.1",
+                user: "root",
+                database: "simaca",
+                password: "root"
+            });
+            connection.connect((err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log('Database connected');
+                    connection.query(
+                        'DELETE FROM prescriptions WHERE id_user = ? AND id_prescription=?',
+                        [
+                            id_user,
                             id_prescription
                         ],
                         //тута я указываюзначкения которые будут вводиться
@@ -243,8 +377,35 @@ class Controller {
         })
     }
 
-    //logout
-    async logoutUser(token_user) {
+    //вiход
+    async getIdUserByToken(token_user) {
+        console.log(token_user);
+        return new Promise((resolve, reject) => {
+            const connection = mysql.createConnection({
+                host: "127.0.0.1",
+                user: "root",
+                database: "simaca",
+                password: "root"
+            });
+            connection.query(
+                'SELECT id_user FROM user WHERE token_user = ?',
+                [
+                    token_user,
+                ],
+                (err, results, fields) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(results[0].id_user);
+                    }
+                });
+        }
+        )
+    }
+
+    async logout(token_user) {
+        const promise = this.getIdUserByToken(token_user);
+        const id_user = await promise;
         return new Promise((resolve, reject) => {
             const connection = mysql.createConnection({
                 host: "127.0.0.1",
@@ -256,18 +417,21 @@ class Controller {
                 if (err) {
                     reject(err);
                 } else {
+
                     console.log('Database connected');
+                    console.log(token_user);
                     connection.query(
-                        'UPDATE user SET = token_user = null WHERE id_user=?',
+                        'UPDATE user SET token_user = NULL WHERE id_user = ?',
                         [
-                            token_user
+
+                            id_user
+
                         ],
-                        //тута я указываюзначкения которые будут вводиться
                         (err, results, fields) => {
                             if (err) {
                                 reject(err);
                             } else {
-                                resolve(results.insertId);
+                                resolve(results);
                             }
                             connection.end((err) => {
                                 if (err) {
@@ -280,8 +444,6 @@ class Controller {
                 }
             })
         });
-
-
     }
 };
 

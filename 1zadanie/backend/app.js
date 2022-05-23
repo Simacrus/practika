@@ -1,6 +1,7 @@
 //сверху объ€вл€ем константы
 const http = require("http");
 const Drug = require("./controller");
+const Taking = require("./controller");
 const { getReqData } = require("./utils");
 
 const PORT = process.env.PORT || 5000;
@@ -8,9 +9,10 @@ const PORT = process.env.PORT || 5000;
 //а тут описывает методы обращени€ к бд
 const server = http.createServer(async (req, res) => {
     if (req.url === "/api/drugs/prescriptions" && req.method === "GET") {
-        const drugs = await new Drug().getDrugs();
+        const body = await getReqData(req);
+        const token = JSON.parse(body);
+        const drugs = await new Drug().getDrugs(token.token_user);
         //эта строка показывает все в консоли
-        console.log(drugs);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(drugs));
     }
@@ -32,7 +34,9 @@ const server = http.createServer(async (req, res) => {
     else if (req.url.match(/\/api\/drugs\/prescriptions\/([0-9]+)/) && req.method === "DELETE") {
         try {
             const id = req.url.split("/")[4];
-            let message = await new Drug().deleteDrug(id);
+            const body = await getReqData(req);
+            const token = JSON.parse(body);
+            let message = await new Drug().deleteDrug(token.token_user, id);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ message }));
         } catch (error) {
@@ -46,7 +50,9 @@ const server = http.createServer(async (req, res) => {
     else if (req.url.match(/\/api\/drugs\/prescriptions\/([0-9]+)/) && req.method === "PATCH") {
         try {
             const id = req.url.split("/")[4];
-            let updated_drug = await new Drug().updateDrug(id);
+            const body = await getReqData(req);
+            const token = JSON.parse(body);
+            let updated_drug = await new Drug().updateDrug(id, token.token_user);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify(updated_drug));
         } catch (error) {
@@ -56,19 +62,42 @@ const server = http.createServer(async (req, res) => {
     }
 
 
-    //запись данных в бд
+    //добовление лекарства
     else if (req.url === "/api/drugs/prescriptions" && req.method === "POST") {
-        console.log("dfdhjf");
-        let drug_data = await getReqData(req);
-        const drug = JSON.parse(drug_data);
-        let newDrug = await new Drug().createDrug(drug.id_prescription, drug.id_user, drug.drug_name, drug.days, drug.start_date, drug.how_much_in_day);
+        const body = await getReqData(req);
+        const token = JSON.parse(body);
+      //  let drug_data = await getReqData(req);
+        // const drug = JSON.parse(drug_data);
+        let newDrug = await new Drug().createDrug(token.token_user, token.drug_name, token.days, token.start_date, token.how_much_in_day);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ id: newDrug }));
     }
 
+        //регистраци€ приема
+    else if (req.url === "/api/drugs/taking" && req.method === "POST") {
+        const body = await getReqData(req);
+        const token = JSON.parse(body);
+        //  let drug_data = await getReqData(req);
+        // const drug = JSON.parse(drug_data);
+        let newTaking = await new Taking().createTaking( token.token_user, token.id_prescription, token.date);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ id: newTaking }));
+    }
+
+    //не прин€л таблеточки
+    else if (req.url.match("/api/drugs/deltaking") && req.method === "DELETE") {
+            const body = await getReqData(req);
+      //      const token = JSON.parse(body);
+            const taking = JSON.parse(body);
+        console.log(taking);
+            let message = await new Taking().deleteTaking(taking.token_user, taking.id_taking);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ message }));
+    }
+
 //user
     // регистраци€
-else if (req.url === "/api/drugs/user" && req.method === "POST") {
+    else if (req.url === "/api/drugs/user" && req.method === "POST") {
     let user_data = await getReqData(req);
     const user = JSON.parse(user_data);
     let newUser = await new Drug().createUser(user.id_user, user.FirstName, user.LastName, user.login, user.password);
@@ -89,9 +118,9 @@ else if (req.url === "/api/drugs/user" && req.method === "POST") {
 else if (req.url === "/api/drugs/logout" && req.method === "GET") {
     let user_data = await getReqData(req);
     const user = JSON.parse(user_data);
-    /*let newUser =*/ await new Drug().logoutUser(user.token_user);
+    await new Drug().logout(user.token_user);
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ id: newUser }));
+    res.end("");
     }
 });
 
