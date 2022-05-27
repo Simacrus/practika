@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@vue/server-renderer": "^3.2.35",
+    "bcrypt": "^5.0.1",
+    "mysql": "^2.18.1",
+    "vue": "^3.2.33"
+  }
+}
